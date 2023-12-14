@@ -43,25 +43,25 @@ func (i Integer) Deserialize() string {
 }
 
 type BulkString struct {
-	length int64
-	value  string
+	Length int64
+	Value  string
 }
 
 func (s BulkString) Deserialize() string {
-	if s.length == -1 {
-		return fmt.Sprintf("%c%d%s", BULK_STRING, s.length, TERMINATOR)
+	if s.Length == -1 {
+		return fmt.Sprintf("%c%d%s", BULK_STRING, s.Length, TERMINATOR)
 	}
-	return fmt.Sprintf("%c%d%s%s%s", BULK_STRING, s.length, TERMINATOR, s.value, TERMINATOR)
+	return fmt.Sprintf("%c%d%s%s%s", BULK_STRING, s.Length, TERMINATOR, s.Value, TERMINATOR)
 }
 
 type Array struct {
 	length   int64
-	elements []RESPType
+	Elements []RESPType
 }
 
 func (a Array) Deserialize() string {
 	var elementsStr string
-	for _, element := range a.elements {
+	for _, element := range a.Elements {
 		elementsStr += element.Deserialize()
 	}
 	return fmt.Sprintf("%c%d%s%s", ARRAY, a.length, TERMINATOR, elementsStr)
@@ -132,7 +132,7 @@ func SerializeBulkString(input string) (BulkString, int) {
 		lengthStr += string(input[i])
 	}
 	length, _ := strconv.ParseInt(lengthStr, 10, 0)
-	bulkString.length = length
+	bulkString.Length = length
 	i += 2
 	if length == -1 {
 		return bulkString, i
@@ -140,7 +140,7 @@ func SerializeBulkString(input string) (BulkString, int) {
 	for ; input[i] != '\r'; i++ {
 		value += string(input[i])
 	}
-	bulkString.value = value
+	bulkString.Value = value
 	return bulkString, i + 2
 }
 
@@ -165,6 +165,6 @@ func SerializeArray(input string) (Array, int) {
 		elements = append(elements, nextElement)
 		i += length
 	}
-	array.elements = elements
+	array.Elements = elements
 	return array, i
 }
