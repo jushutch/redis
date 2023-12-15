@@ -1,24 +1,30 @@
 package repo
 
-import "fmt"
+import (
+	"fmt"
+	"log/slog"
+)
 
 type Repo struct {
-	data map[string]string
+	logger *slog.Logger
+	data   map[string]string
 }
 
-func NewRepo() *Repo {
+func NewRepo(logger *slog.Logger) *Repo {
 	return &Repo{
-		data: make(map[string]string),
+		logger: logger.With("name", "redis.repo"),
+		data:   make(map[string]string),
 	}
 }
 
 func (r *Repo) Set(key, value string) error {
-	fmt.Printf("Set Key: %q\nSet Value: %q\n", key, value)
+	r.logger.Info("set value", "key", key, "value", value)
 	r.data[key] = value
 	return nil
 }
 
 func (r *Repo) Get(key string) (string, error) {
+	r.logger.Info("get value", "key", key)
 	value, ok := r.data[key]
 	if !ok {
 		return "", fmt.Errorf("the key %s does not exist", key)

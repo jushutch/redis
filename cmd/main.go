@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 
@@ -10,19 +9,28 @@ import (
 )
 
 func main() {
+	// Parse configuration from command line/environment variables
 	var conf server.Config
+	var debug bool
 	flag.StringVar(&conf.Host, "host", "localhost", "host to run the Redis server on")
 	flag.StringVar(&conf.Port, "port", "6379", "port to run the Redis server on")
-	debug := flag.Bool("debug", false, "set logging level to debug")
+	flag.BoolVar(&debug, "debug", false, "set logging level to debug")
 	flag.Parse()
+
+	// Create logger
 	logOptions := &slog.HandlerOptions{Level: slog.LevelInfo}
-	if *debug {
+	if debug {
 		logOptions.Level = slog.LevelDebug
+		logOptions.AddSource = true
 	}
-	handler := slog.NewJSONHandler(os.Stdout, logOptions)
-	logger := slog.New(handler)
-	if err := server.New().Run(conf, logger); err != nil {
-		fmt.Println(err.Error())
+	logger := slog.New(slog.NewTextHandler(os.Stdout, logOptions))
+
+	// Run service
+	if err := server.New(logger).Run(conf); err != nil {
+		logger.Error(
+			"failed to run server",
+			slog.Any("error", err),
+		)
 		os.Exit(1)
 	}
 }

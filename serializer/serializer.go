@@ -5,6 +5,7 @@ import (
 	"strconv"
 )
 
+// Define type prefixes
 const (
 	TERMINATOR    = "\r\n"
 	SIMPLE_STRING = '+'
@@ -16,55 +17,6 @@ const (
 
 type RESPType interface {
 	Deserialize() string
-}
-
-type SimpleString string
-
-func (s SimpleString) Deserialize() string {
-	return fmt.Sprintf("%c%s%s", SIMPLE_STRING, string(s), TERMINATOR)
-}
-
-type SimpleError string
-
-func (s SimpleError) Deserialize() string {
-	return fmt.Sprintf("%c%s%s", SIMPLE_ERROR, string(s), TERMINATOR)
-}
-
-type Integer struct {
-	prefix bool
-	value  int64
-}
-
-func (i Integer) Deserialize() string {
-	if i.prefix {
-		return fmt.Sprintf("%c%+d%s", INTEGER, i.value, TERMINATOR)
-	}
-	return fmt.Sprintf("%c%d%s", INTEGER, i.value, TERMINATOR)
-}
-
-type BulkString struct {
-	Length int64
-	Value  string
-}
-
-func (s BulkString) Deserialize() string {
-	if s.Length == -1 {
-		return fmt.Sprintf("%c%d%s", BULK_STRING, s.Length, TERMINATOR)
-	}
-	return fmt.Sprintf("%c%d%s%s%s", BULK_STRING, s.Length, TERMINATOR, s.Value, TERMINATOR)
-}
-
-type Array struct {
-	length   int64
-	Elements []RESPType
-}
-
-func (a Array) Deserialize() string {
-	var elementsStr string
-	for _, element := range a.Elements {
-		elementsStr += element.Deserialize()
-	}
-	return fmt.Sprintf("%c%d%s%s", ARRAY, a.length, TERMINATOR, elementsStr)
 }
 
 func Serialize(input string) (RESPType, int) {
@@ -88,6 +40,8 @@ func Serialize(input string) (RESPType, int) {
 	}
 }
 
+type SimpleString string
+
 // +OK\r\n
 func SerializeSimpleString(input string) (SimpleString, int) {
 	var str string
@@ -97,6 +51,12 @@ func SerializeSimpleString(input string) (SimpleString, int) {
 	return SimpleString(str), len(str) + 3
 }
 
+func (s SimpleString) Deserialize() string {
+	return fmt.Sprintf("%c%s%s", SIMPLE_STRING, string(s), TERMINATOR)
+}
+
+type SimpleError string
+
 // -Error message\r\n
 func SerializeSimpleError(input string) (SimpleError, int) {
 	var err string
@@ -104,6 +64,15 @@ func SerializeSimpleError(input string) (SimpleError, int) {
 		err += string(input[i])
 	}
 	return SimpleError(err), len(err) + 3
+}
+
+func (s SimpleError) Deserialize() string {
+	return fmt.Sprintf("%c%s%s", SIMPLE_ERROR, string(s), TERMINATOR)
+}
+
+type Integer struct {
+	prefix bool
+	value  int64
 }
 
 // :+1000\r\n
@@ -120,6 +89,18 @@ func SerializeInteger(input string) (Integer, int) {
 		integer.value = value
 	}
 	return integer, len(valueStr) + 3
+}
+
+func (i Integer) Deserialize() string {
+	if i.prefix {
+		return fmt.Sprintf("%c%+d%s", INTEGER, i.value, TERMINATOR)
+	}
+	return fmt.Sprintf("%c%d%s", INTEGER, i.value, TERMINATOR)
+}
+
+type BulkString struct {
+	Length int64
+	Value  string
 }
 
 // $5\r\nhello\r\n
@@ -144,6 +125,18 @@ func SerializeBulkString(input string) (BulkString, int) {
 	return bulkString, i + 2
 }
 
+func (s BulkString) Deserialize() string {
+	if s.Length == -1 {
+		return fmt.Sprintf("%c%d%s", BULK_STRING, s.Length, TERMINATOR)
+	}
+	return fmt.Sprintf("%c%d%s%s%s", BULK_STRING, s.Length, TERMINATOR, s.Value, TERMINATOR)
+}
+
+type Array struct {
+	Length   int64
+	Elements []RESPType
+}
+
 // *1\r\n$4\r\nping\r\n
 func SerializeArray(input string) (Array, int) {
 	var array Array
@@ -154,7 +147,7 @@ func SerializeArray(input string) (Array, int) {
 	}
 	i += 2
 	numElements, _ := strconv.ParseInt(numElementsStr, 10, 0)
-	array.length = numElements
+	array.Length = numElements
 	if numElements == -1 {
 		return array, i
 	}
@@ -167,4 +160,12 @@ func SerializeArray(input string) (Array, int) {
 	}
 	array.Elements = elements
 	return array, i
+}
+
+func (a Array) Deserialize() string {
+	var elementsStr string
+	for _, element := range a.Elements {
+		elementsStr += element.Deserialize()
+	}
+	return fmt.Sprintf("%c%d%s%s", ARRAY, a.Length, TERMINATOR, elementsStr)
 }

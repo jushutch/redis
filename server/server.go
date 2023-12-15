@@ -15,23 +15,22 @@ type Config struct {
 }
 
 type Manager interface {
-	Ping() serializer.RESPType
-	Echo(message serializer.BulkString) serializer.RESPType
-	Set(key, value serializer.BulkString) serializer.RESPType
-	Get(key serializer.BulkString) serializer.RESPType
+	HandleCommand(command serializer.Array) serializer.RESPType
 }
 
 type Server struct {
 	manager Manager
+	logger  *slog.Logger
 }
 
-func New() *Server {
+func New(logger *slog.Logger) *Server {
 	return &Server{
-		manager: manager.NewManager(),
+		manager: manager.NewManager(logger),
+		logger:  logger.With("name", "redis.server"),
 	}
 }
 
-func (s *Server) Run(conf Config, logger *slog.Logger) error {
+func (s *Server) Run(conf Config) error {
 	// Listen for incoming connections.
 	l, err := net.Listen("tcp", conf.Host+":"+conf.Port)
 	if err != nil {
@@ -40,7 +39,7 @@ func (s *Server) Run(conf Config, logger *slog.Logger) error {
 	// Close the listener when the application closes.
 	defer l.Close()
 
-	fmt.Println("Listening on " + conf.Host + ":" + conf.Port)
+	s.logger.Info("listening", "host", conf.Host, "port", conf.Port)
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()
@@ -54,61 +53,25 @@ func (s *Server) Run(conf Config, logger *slog.Logger) error {
 
 func (s *Server) handleRequest(conn net.Conn) {
 	defer conn.Close()
-	// Make a buffer to hold incoming data.
 	buf := make([]byte, 1024)
-	// Read the incoming connection into the buffer.
 	n, err := conn.Read(buf)
 	if err != nil {
-		fmt.Println("Error reading:", err.Error())
+		s.logger.Error("failed to read from connection", "error", err)
 		return
 	}
-	input := string(buf[:n])
-	fmt.Printf("\n%q\n", input)
-	respType, x := serializer.Serialize(input)
-	commands, ok := respType.(serializer.Array)
+	request := string(buf[:n])
+	s.logger.Info("received request", "request", request)
+	requestType, _ := serializer.Serialize(request)
+	command, ok := requestType.(serializer.Array)
 	if !ok {
+		s.logger.Error("request was not an array", "request", request)
 		return
 	}
-
-	fmt.Printf("\nRESP Type: %q\nBytes Read: %d\n", respType.Deserialize(), x)
-	response := s.handleCommands(commands.Elements)
+	response := s.manager.HandleCommand(command)
 	if response == nil {
+		s.logger.Error("response was nil", "request", request)
 		return
 	}
-	// Send a response back to person contacting us.
+	s.logger.Info("send response", "response", response.Deserialize())
 	conn.Write([]byte(response.Deserialize()))
-}
-
-func (s *Server) handleCommands(commands []serializer.RESPType) serializer.RESPType {
-	commandName, ok := commands[0].(serializer.BulkString)
-	if !ok {
-		return nil
-	}
-	switch commandName.Value {
-	case "PING":
-		return s.manager.Ping()
-	case "ECHO":
-		message, ok := commands[1].(serializer.BulkString)
-		if !ok {
-			return nil
-		}
-		return s.manager.Echo(message)
-	case "SET":
-		key, ok := commands[1].(serializer.BulkString)
-		if !ok {
-			return nil
-		}
-		value, ok := commands[2].(serializer.BulkString)
-		if !ok {
-			return nil
-		}
-		return s.manager.Set(key, value)
-	case "GET":
-		key, ok := commands[1].(serializer.BulkString)
-		if !ok {
-			return nil
-		}
-		return s.manager.Get(key)
-	}
-	return nil
 }
