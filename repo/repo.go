@@ -64,7 +64,7 @@ func (r *Repo) Get(key string) (string, error) {
 func (r *Repo) isNewExpiration(key string, expiration int64) bool {
 	r.emu.RLock()
 	val, ok := r.expirations[key]
-	new := ok && val == expiration
+	new := (ok && val == expiration) || !ok
 	r.emu.RUnlock()
 	return new
 }
@@ -72,7 +72,7 @@ func (r *Repo) isNewExpiration(key string, expiration int64) bool {
 func (r *Repo) isNewValue(key string, value string) bool {
 	r.dmu.RLock()
 	val, ok := r.data[key]
-	new := ok && val == value
+	new := (ok && val == value) || !ok
 	r.dmu.RUnlock()
 	return new
 }
