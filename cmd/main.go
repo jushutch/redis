@@ -23,14 +23,11 @@ func main() {
 		logOptions.Level = slog.LevelDebug
 		logOptions.AddSource = true
 	}
-	logger := slog.New(slog.NewTextHandler(os.Stdout, logOptions))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, logOptions))
 
 	// Run service
 	if err := server.New(logger).Run(conf); err != nil {
-		logger.Error(
-			"failed to run server",
-			slog.Any("error", err),
-		)
+		logger.Error("failed to run server", "error", err)
 		os.Exit(1)
 	}
 }

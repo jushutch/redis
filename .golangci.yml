@@ -1,0 +1,30 @@
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - decorder
+    - errorlint
+    - exhaustive
+    - gci
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godox
+    - gofmt
+    - goimports
+    - lll
+    - maintidx
+    - makezero
+    - misspell
+    - nestif
+    - perfsprint
+    - prealloc
+    - sloglint
+    - unconvert
+    - unparam
