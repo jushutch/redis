@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"github.com/jushutch/redis/manager"
+	"github.com/jushutch/redis/repo"
 	"github.com/jushutch/redis/serializer"
 )
 
@@ -30,8 +31,9 @@ type Server struct {
 
 // New creates a new server
 func New(logger *slog.Logger) *Server {
+	repo := repo.New(logger)
 	return &Server{
-		manager: manager.New(logger),
+		manager: manager.New(repo, logger),
 		logger:  logger.With("name", "redis.server"),
 	}
 }
@@ -95,6 +97,6 @@ func (s *Server) handleRequest(conn net.Conn) {
 			s.logger.Error("failed to write response")
 			continue
 		}
-		s.logger.Info("sent response", "bytes_written", bytesWritten)
+		logger.Info("sent response", "bytes_written", bytesWritten)
 	}
 }

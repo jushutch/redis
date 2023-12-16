@@ -25,15 +25,17 @@ func TestSerialize(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		output, length := Serialize(test.input)
-		if output == nil {
-			t.Fatalf("tests[%q] - serialization output was unexpectedly nil", test.input)
-		}
-		if length != len(test.input) {
-			t.Fatalf("tests[%q] - expected length to match input: got %d, wanted %d", test.input, length, len(test.input))
-		}
-		if output.Deserialize() != test.input {
-			t.Fatalf("tests[%q] - got %s, wanted %s", test.input, output.Deserialize(), test.input)
-		}
+		t.Run(test.input, func(t *testing.T) {
+			output, length := Serialize(test.input)
+			if output == nil {
+				t.Fatalf("tests[%q] - serialization output was unexpectedly nil", test.input)
+			}
+			if length != len(test.input) {
+				t.Fatalf("tests[%q] - expected length to match input: got %d, wanted %d", test.input, length, len(test.input))
+			}
+			if output.Deserialize() != test.input {
+				t.Fatalf("tests[%q] - got %s, wanted %s", test.input, output.Deserialize(), test.input)
+			}
+		})
 	}
 }

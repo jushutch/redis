@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/jushutch/redis/repo"
 	"github.com/jushutch/redis/serializer"
 )
 
@@ -30,10 +29,10 @@ type Manager struct {
 }
 
 // New creates a new Redis manager
-func New(logger *slog.Logger) *Manager {
+func New(repo Repo, logger *slog.Logger) *Manager {
 	return &Manager{
 		logger: logger.With("name", "redis.manager"),
-		repo:   repo.New(logger),
+		repo:   repo,
 	}
 }
 
