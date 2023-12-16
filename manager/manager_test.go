@@ -51,7 +51,7 @@ func TestManager(t *testing.T) {
 			},
 			expected: serializer.SimpleString("OK"),
 			expect: func(m *MockRepo) {
-				m.EXPECT().Set("key", "value").Return(nil).Times(1)
+				m.EXPECT().Set("key", "value", int64(0)).Return(nil).Times(1)
 			},
 		},
 		{

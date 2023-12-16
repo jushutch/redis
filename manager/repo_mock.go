@@ -53,15 +53,15 @@ func (mr *MockRepoMockRecorder) Get(arg0 any) *gomock.Call {
 }
 
 // Set mocks base method.
-func (m *MockRepo) Set(arg0, arg1 string) error {
+func (m *MockRepo) Set(arg0, arg1 string, arg2 int64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Set", arg0, arg1)
+	ret := m.ctrl.Call(m, "Set", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Set indicates an expected call of Set.
-func (mr *MockRepoMockRecorder) Set(arg0, arg1 any) *gomock.Call {
+func (mr *MockRepoMockRecorder) Set(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockRepo)(nil).Set), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockRepo)(nil).Set), arg0, arg1, arg2)
 }

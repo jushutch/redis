@@ -8,17 +8,19 @@ import (
 	"github.com/jushutch/redis/serializer"
 )
 
+type Command string
+
 // Define supported commands
 const (
-	PING = "PING"
-	ECHO = "ECHO"
-	SET  = "SET"
-	GET  = "GET"
+	PING Command = "PING"
+	ECHO Command = "ECHO"
+	SET  Command = "SET"
+	GET  Command = "GET"
 )
 
 // Repo manages the storing and retreiving of data
 type Repo interface {
-	Set(key string, value string) error
+	Set(key string, value string, expiration int64) error
 	Get(key string) (string, error)
 }
 
@@ -46,62 +48,17 @@ func (m *Manager) HandleCommand(command serializer.Array) serializer.RESPType {
 	if !ok {
 		return nil
 	}
-	switch strings.ToUpper(name.Value) {
+	switch Command(strings.ToUpper(name.Value)) {
 	case PING:
-		return m.ping()
+		return m.handlePing(command)
 	case ECHO:
-		message, ok := command.Elements[1].(serializer.BulkString)
-		if !ok {
-			return nil
-		}
-		return m.echo(message)
+		return m.handleEcho(command)
 	case SET:
-		key, ok := command.Elements[1].(serializer.BulkString)
-		if !ok {
-			return nil
-		}
-		value, ok := command.Elements[2].(serializer.BulkString)
-		if !ok {
-			return nil
-		}
-		return m.set(key, value)
+		return m.handleSet(command)
 	case GET:
-		key, ok := command.Elements[1].(serializer.BulkString)
-		if !ok {
-			return nil
-		}
-		return m.get(key)
+		return m.handleGet(command)
 	default:
 		m.logger.Warn("unknown command", "command", name.Value)
 		return serializer.SimpleError(fmt.Sprintf("ERR unknown command '%s'", name.Value))
 	}
-}
-
-func (m *Manager) ping() serializer.RESPType {
-	m.logger.Info("handle command", "command", PING)
-	return serializer.SimpleString("PONG")
-}
-
-func (m *Manager) echo(message serializer.BulkString) serializer.RESPType {
-	m.logger.Info("handle command", "command", ECHO)
-	return message
-}
-
-func (m *Manager) set(key, value serializer.BulkString) serializer.RESPType {
-	m.logger.Info("handle command", "command", SET)
-	err := m.repo.Set(key.Value, value.Value)
-	if err != nil {
-		return nil
-	}
-	return serializer.SimpleString("OK")
-}
-
-func (m *Manager) get(key serializer.BulkString) serializer.RESPType {
-	m.logger.Info("handle command", "command", GET)
-	value, err := m.repo.Get(key.Value)
-	if err != nil {
-		m.logger.Error("failed to get value from repo", "key", key.Value, "error", err)
-		return serializer.BulkString{Length: -1, Value: ""}
-	}
-	return serializer.BulkString{Length: int64(len(value)), Value: value}
 }

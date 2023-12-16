@@ -1,14 +1,19 @@
 package serializer
 
+// TypePrefix is the prefix character indicating a RESP type
+type TypePrefix rune
+
 // Define type prefixes
 const (
-	TERMINATOR    = "\r\n"
-	SIMPLE_STRING = '+'
-	SIMPLE_ERROR  = '-'
-	INTEGER       = ':'
-	BULK_STRING   = '$'
-	ARRAY         = '*'
+	SIMPLE_STRING TypePrefix = '+'
+	SIMPLE_ERROR  TypePrefix = '-'
+	INTEGER       TypePrefix = ':'
+	BULK_STRING   TypePrefix = '$'
+	ARRAY         TypePrefix = '*'
 )
+
+// String used as RESP terminator
+const TERMINATOR = "\r\n"
 
 // RESPType represents a valid RESP data type
 type RESPType interface {
@@ -21,7 +26,7 @@ func Serialize(input string) (RESPType, int) {
 	if len(input) == 0 {
 		return nil, 0
 	}
-	switch input[0] {
+	switch TypePrefix(input[0]) {
 	case SIMPLE_STRING:
 		return serializeSimpleString(input)
 	case SIMPLE_ERROR:
