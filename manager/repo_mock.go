@@ -37,6 +37,20 @@ func (m *MockRepo) EXPECT() *MockRepoMockRecorder {
 	return m.recorder
 }
 
+// Delete mocks base method.
+func (m *MockRepo) Delete(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Delete", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockRepoMockRecorder) Delete(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockRepo)(nil).Delete), arg0)
+}
+
 // Get mocks base method.
 func (m *MockRepo) Get(arg0 string) (string, error) {
 	m.ctrl.T.Helper()
@@ -50,6 +64,21 @@ func (m *MockRepo) Get(arg0 string) (string, error) {
 func (mr *MockRepoMockRecorder) Get(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockRepo)(nil).Get), arg0)
+}
+
+// Increment mocks base method.
+func (m *MockRepo) Increment(arg0 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Increment", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Increment indicates an expected call of Increment.
+func (mr *MockRepoMockRecorder) Increment(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Increment", reflect.TypeOf((*MockRepo)(nil).Increment), arg0)
 }
 
 // Set mocks base method.

@@ -12,16 +12,21 @@ type Command string
 
 // Define supported commands
 const (
-	PING Command = "PING"
-	ECHO Command = "ECHO"
-	SET  Command = "SET"
-	GET  Command = "GET"
+	PING      Command = "PING"
+	ECHO      Command = "ECHO"
+	SET       Command = "SET"
+	GET       Command = "GET"
+	EXISTS    Command = "EXISTS"
+	DELETE    Command = "DEL"
+	INCREMENT Command = "INCR"
 )
 
 // Repo manages the storing and retreiving of data
 type Repo interface {
 	Set(key string, value string, expiration int64) error
 	Get(key string) (string, error)
+	Delete(key string) error
+	Increment(key string) (int64, error)
 }
 
 // Manager handles Redis commands
@@ -57,6 +62,12 @@ func (m *Manager) HandleCommand(command serializer.Array) serializer.RESPType {
 		return m.handleSet(command)
 	case GET:
 		return m.handleGet(command)
+	case EXISTS:
+		return m.handleExists(command)
+	case DELETE:
+		return m.handleDelete(command)
+	case INCREMENT:
+		return m.handleIncrement(command)
 	default:
 		m.logger.Warn("unknown command", "command", name.Value)
 		return serializer.SimpleError(fmt.Sprintf("ERR unknown command '%s'", name.Value))

@@ -3,80 +3,73 @@ package repo
 import (
 	"fmt"
 	"log/slog"
-	"sync"
+	"strconv"
 	"time"
 )
 
 // Repo manages the storing and retreiving of data
 type Repo struct {
 	logger      *slog.Logger
-	data        map[string]string
-	expirations map[string]int64
-	dmu         sync.RWMutex
-	emu         sync.RWMutex
+	data        *ThreadSafeMap[string]
+	expirations *ThreadSafeMap[int64]
 }
 
 // New creates a new repo
 func New(logger *slog.Logger) *Repo {
 	return &Repo{
 		logger:      logger.With("name", "redis.repo"),
-		data:        make(map[string]string),
-		expirations: make(map[string]int64),
+		data:        NewThreadSafeMap[string](),
+		expirations: NewThreadSafeMap[int64](),
 	}
 }
 
 // Set writes a given value for a given key
 func (r *Repo) Set(key, value string, expiration int64) error {
-	// Save cycles if there are no changes
-	if !r.isNewValue(key, value) && !r.isNewExpiration(key, expiration) {
-		return nil
-	}
-
-	r.dmu.Lock()
 	r.logger.Info("set value", "key", key, "value", value, "expiration", expiration)
-	r.data[key] = value
-	r.dmu.Unlock()
-	r.emu.Lock()
-	r.expirations[key] = expiration
-	r.emu.Unlock()
+	r.data.Set(key, value)
+	r.expirations.Set(key, expiration)
 	return nil
 }
 
 // Get retrieves the value for a given key
 func (r *Repo) Get(key string) (string, error) {
-	r.emu.RLock()
-	if expirationUnix, ok := r.expirations[key]; ok && isExpired(expirationUnix) {
-		r.emu.RUnlock()
+	r.logger.Info("get value", "key", key)
+	if expirationUnix, err := r.expirations.Get(key); err != nil || isExpired(expirationUnix) {
 		return "", fmt.Errorf("the key %q expired", key)
 	}
-	r.emu.RUnlock()
+	return r.data.Get(key)
+}
 
-	r.dmu.RLock()
-	defer r.dmu.RUnlock()
-	r.logger.Info("get value", "key", key)
-	value, ok := r.data[key]
-	if !ok {
-		return "", fmt.Errorf("the key %q does not exist", key)
+// Delete removes the given key
+func (r *Repo) Delete(key string) error {
+	r.logger.Info("delete key", "key", key)
+	if _, err := r.data.Get(key); err != nil {
+		return fmt.Errorf("failed to get value for key: %w", err)
 	}
+	r.expirations.Set(key, -1)
+	return nil
+}
+
+// Set writes a given value for a given key
+func (r *Repo) Increment(key string) (int64, error) {
+	r.logger.Info("increment", "key", key)
+	valueStr, err := r.Get(key)
+	if err != nil {
+		err = r.Set(key, "1", 0)
+		if err != nil {
+			return 0, fmt.Errorf("failed to set new value: %w", err)
+		}
+		return 1, nil
+	}
+	value, err := strconv.ParseInt(valueStr, 10, 0)
+	if err != nil {
+		return 0, fmt.Errorf("value is not an integer: %w", err)
+	}
+	value++
+	r.data.Set(key, fmt.Sprintf("%d", value))
 	return value, nil
 }
 
-func (r *Repo) isNewExpiration(key string, expiration int64) bool {
-	r.emu.RLock()
-	val, ok := r.expirations[key]
-	new := (ok && val == expiration) || !ok
-	r.emu.RUnlock()
-	return new
-}
-
-func (r *Repo) isNewValue(key string, value string) bool {
-	r.dmu.RLock()
-	val, ok := r.data[key]
-	new := (ok && val == value) || !ok
-	r.dmu.RUnlock()
-	return new
-}
-
 func isExpired(unixMilli int64) bool {
-	return unixMilli != 0 && time.Now().After(time.UnixMilli(unixMilli))
+	return unixMilli != 0 && (unixMilli == -1 || time.Now().After(time.UnixMilli(unixMilli)))
 }

@@ -18,7 +18,7 @@ func main() {
 	flag.Parse()
 
 	// Create logger
-	logOptions := &slog.HandlerOptions{Level: slog.LevelInfo}
+	logOptions := &slog.HandlerOptions{Level: slog.LevelWarn}
 	if debug {
 		logOptions.Level = slog.LevelDebug
 		logOptions.AddSource = true

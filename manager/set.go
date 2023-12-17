@@ -3,6 +3,7 @@ package manager
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jushutch/redis/serializer"
@@ -17,29 +18,24 @@ const (
 	PXAT ExpirationOpt = "PXAT"
 )
 
-func IsExpirationOpt(opt string) bool {
-	o := ExpirationOpt(opt)
-	return o == EX || o == PX || o == EXAT || o == PXAT
-}
-
 func (o ExpirationOpt) GetExpiration(raw string) (int64, error) {
 	switch o {
 	case EX:
 		expiration, err := strconv.ParseInt(raw, 10, 0)
 		if err != nil {
-			return 0, nil
+			return 0, err
 		}
 		return time.Now().Add(time.Duration(expiration) * time.Second).UnixMilli(), nil
 	case PX:
 		expiration, err := strconv.ParseInt(raw, 10, 0)
 		if err != nil {
-			return 0, nil
+			return 0, err
 		}
 		return time.Now().Add(time.Duration(expiration) * time.Millisecond).UnixMilli(), nil
 	case EXAT:
 		expiration, err := strconv.ParseInt(raw, 10, 0)
 		if err != nil {
-			return 0, nil
+			return 0, err
 		}
 		return time.Unix(expiration, 0).UnixMilli(), nil
 	case PXAT:
@@ -71,14 +67,15 @@ func (m *Manager) handleSet(command serializer.Array) serializer.RESPType {
 		if !ok {
 			return nil
 		}
-		expirationUnix, err = ExpirationOpt(option.Value).GetExpiration(expirationStr.Value)
+		expirationUnix, err = ExpirationOpt(strings.ToUpper(option.Value)).GetExpiration(expirationStr.Value)
 		if err != nil {
+			m.logger.Error("failed to parse expiration argument", "error", err)
 			return nil
 		}
 	}
 	err = m.repo.Set(key.Value, value.Value, expirationUnix)
 	if err != nil {
-		return nil
+		return serializer.SimpleError(err.Error())
 	}
 	return serializer.SimpleString("OK")
 }

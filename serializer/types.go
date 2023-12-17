@@ -36,8 +36,8 @@ func (s SimpleError) Deserialize() string {
 }
 
 type Integer struct {
-	prefix bool
-	value  int64
+	Prefix bool
+	Value  int64
 }
 
 // :+1000\r\n
@@ -46,21 +46,21 @@ func serializeInteger(input string) (Integer, int) {
 	var valueStr string
 	for i := 1; input[i] != '\r'; i++ {
 		if input[i] == '+' {
-			integer.prefix = true
+			integer.Prefix = true
 		}
 		valueStr += string(input[i])
 	}
 	if value, err := strconv.ParseInt(valueStr, 10, 0); err == nil {
-		integer.value = value
+		integer.Value = value
 	}
 	return integer, len(valueStr) + 3
 }
 
 func (i Integer) Deserialize() string {
-	if i.prefix {
-		return fmt.Sprintf("%c%+d%s", INTEGER, i.value, TERMINATOR)
+	if i.Prefix {
+		return fmt.Sprintf("%c%+d%s", INTEGER, i.Value, TERMINATOR)
 	}
-	return fmt.Sprintf("%c%d%s", INTEGER, i.value, TERMINATOR)
+	return fmt.Sprintf("%c%d%s", INTEGER, i.Value, TERMINATOR)
 }
 
 type BulkString struct {
