@@ -46,8 +46,6 @@ func (o ExpirationOpt) GetExpiration(raw string) (int64, error) {
 }
 
 func (m *Manager) handleSet(command serializer.Array) serializer.RESPType {
-	m.logger.Info("handle command", "command", SET)
-
 	key, ok := command.Elements[1].(serializer.BulkString)
 	if !ok {
 		return nil

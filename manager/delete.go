@@ -3,7 +3,6 @@ package manager
 import "github.com/jushutch/redis/serializer"
 
 func (m *Manager) handleDelete(command serializer.Array) serializer.RESPType {
-	m.logger.Info("handle command", "command", DELETE)
 	var delCount int64
 	for i := 1; i < int(command.Length); i++ {
 		key, ok := command.Elements[i].(serializer.BulkString)

@@ -19,6 +19,7 @@ const (
 	EXISTS    Command = "EXISTS"
 	DELETE    Command = "DEL"
 	INCREMENT Command = "INCR"
+	DECREMENT Command = "DECR"
 )
 
 // Repo manages the storing and retreiving of data
@@ -26,7 +27,7 @@ type Repo interface {
 	Set(key string, value string, expiration int64) error
 	Get(key string) (string, error)
 	Delete(key string) error
-	Increment(key string) (int64, error)
+	Add(key string, toAdd int64) (int64, error)
 }
 
 // Manager handles Redis commands
@@ -53,7 +54,9 @@ func (m *Manager) HandleCommand(command serializer.Array) serializer.RESPType {
 	if !ok {
 		return nil
 	}
-	switch Command(strings.ToUpper(name.Value)) {
+	commandName := Command(strings.ToUpper(name.Value))
+	m.logger.Info("handle command", "command", commandName)
+	switch commandName {
 	case PING:
 		return m.handlePing(command)
 	case ECHO:
@@ -68,8 +71,9 @@ func (m *Manager) HandleCommand(command serializer.Array) serializer.RESPType {
 		return m.handleDelete(command)
 	case INCREMENT:
 		return m.handleIncrement(command)
+	case DECREMENT:
+		return m.handleDecrement(command)
 	default:
-		m.logger.Warn("unknown command", "command", name.Value)
 		return serializer.SimpleError(fmt.Sprintf("ERR unknown command '%s'", name.Value))
 	}
 }

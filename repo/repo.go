@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 	"log/slog"
+	"math"
 	"strconv"
 	"time"
 )
@@ -50,12 +51,35 @@ func (r *Repo) Delete(key string) error {
 	return nil
 }
 
-// Set writes a given value for a given key
-func (r *Repo) Increment(key string) (int64, error) {
-	r.logger.Info("increment", "key", key)
+// Increment attempts to increase the value of the given key by 1
+func (r *Repo) Add(key string, toAdd int64) (int64, error) {
+	r.logger.Info("increment", "key", key, "to_add", toAdd)
 	valueStr, err := r.Get(key)
 	if err != nil {
-		err = r.Set(key, "1", 0)
+		err = r.Set(key, fmt.Sprintf("%d", toAdd), 0)
+		if err != nil {
+			return 0, fmt.Errorf("failed to set new value: %w", err)
+		}
+		return toAdd, nil
+	}
+	value, err := strconv.ParseInt(valueStr, 10, 0)
+	if err != nil {
+		return 0, fmt.Errorf("value is not an integer: %w", err)
+	}
+	if math.MaxInt64-value > toAdd {
+		return 0, fmt.Errorf("new value would be out of range")
+	}
+	value += toAdd
+	r.data.Set(key, fmt.Sprintf("%d", value))
+	return value, nil
+}
+
+// Decrement attempts to decrease the value of the given key by 1
+func (r *Repo) Decrement(key string) (int64, error) {
+	r.logger.Info("decrement", "key", key)
+	valueStr, err := r.Get(key)
+	if err != nil {
+		err = r.Set(key, "-1", 0)
 		if err != nil {
 			return 0, fmt.Errorf("failed to set new value: %w", err)
 		}
@@ -65,7 +89,7 @@ func (r *Repo) Increment(key string) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("value is not an integer: %w", err)
 	}
-	value++
+	value--
 	r.data.Set(key, fmt.Sprintf("%d", value))
 	return value, nil
 }
