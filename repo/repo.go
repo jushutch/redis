@@ -11,7 +11,7 @@ import (
 // Repo manages the storing and retreiving of data
 type Repo struct {
 	logger      *slog.Logger
-	data        *ThreadSafeMap[string]
+	data        *ThreadSafeMap[interface{}]
 	expirations *ThreadSafeMap[int64]
 }
 
@@ -19,7 +19,7 @@ type Repo struct {
 func New(logger *slog.Logger) *Repo {
 	return &Repo{
 		logger:      logger.With("name", "redis.repo"),
-		data:        NewThreadSafeMap[string](),
+		data:        NewThreadSafeMap[interface{}](),
 		expirations: NewThreadSafeMap[int64](),
 	}
 }
@@ -38,7 +38,14 @@ func (r *Repo) Get(key string) (string, error) {
 	if expirationUnix, err := r.expirations.Get(key); err != nil || isExpired(expirationUnix) {
 		return "", fmt.Errorf("the key %q expired", key)
 	}
-	return r.data.Get(key)
+	rawValue, err := r.data.Get(key)
+	if err != nil {
+		return "", fmt.Errorf("failed to get value for key %q: %w", key, err)
+	}
+	if value, ok := rawValue.(string); ok {
+		return value, nil
+	}
+	return "", fmt.Errorf("value (%v) for requested key (%q) was not a string", rawValue, key)
 }
 
 // Delete removes the given key
@@ -51,12 +58,12 @@ func (r *Repo) Delete(key string) error {
 	return nil
 }
 
-// Increment attempts to increase the value of the given key by 1
+// Add attempts to perform addition on the stored value
 func (r *Repo) Add(key string, toAdd int64) (int64, error) {
-	r.logger.Info("increment", "key", key, "to_add", toAdd)
+	r.logger.Info("add", "key", key, "to_add", toAdd)
 	valueStr, err := r.Get(key)
 	if err != nil {
-		err = r.Set(key, fmt.Sprintf("%d", toAdd), 0)
+		err = r.Set(key, strconv.FormatInt(toAdd, 10), 0)
 		if err != nil {
 			return 0, fmt.Errorf("failed to set new value: %w", err)
 		}
@@ -70,27 +77,7 @@ func (r *Repo) Add(key string, toAdd int64) (int64, error) {
 		return 0, fmt.Errorf("new value would be out of range")
 	}
 	value += toAdd
-	r.data.Set(key, fmt.Sprintf("%d", value))
-	return value, nil
-}
-
-// Decrement attempts to decrease the value of the given key by 1
-func (r *Repo) Decrement(key string) (int64, error) {
-	r.logger.Info("decrement", "key", key)
-	valueStr, err := r.Get(key)
-	if err != nil {
-		err = r.Set(key, "-1", 0)
-		if err != nil {
-			return 0, fmt.Errorf("failed to set new value: %w", err)
-		}
-		return 1, nil
-	}
-	value, err := strconv.ParseInt(valueStr, 10, 0)
-	if err != nil {
-		return 0, fmt.Errorf("value is not an integer: %w", err)
-	}
-	value--
-	r.data.Set(key, fmt.Sprintf("%d", value))
+	r.data.Set(key, strconv.FormatInt(value, 10))
 	return value, nil
 }
 
