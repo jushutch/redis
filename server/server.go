@@ -62,7 +62,7 @@ func (s *Server) handleRequest(conn net.Conn) {
 	buffer := make([]byte, 1024)
 	bytesRead, err := conn.Read(buffer)
 	if err != nil {
-		if errors.Is(err, io.EOF) {
+		if !errors.Is(err, io.EOF) {
 			s.logger.Error("failed to read from connection", "error", err)
 		}
 		return

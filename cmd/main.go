@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/jushutch/redis/server"
+	"github.com/lmittmann/tint"
 	"github.com/namsral/flag"
 )
 
@@ -18,12 +19,14 @@ func main() {
 	flag.Parse()
 
 	// Create logger
-	logOptions := &slog.HandlerOptions{Level: slog.LevelInfo}
+	var logger *slog.Logger
 	if debug {
-		logOptions.Level = slog.LevelDebug
-		logOptions.AddSource = true
+		logOptions := &tint.Options{Level: slog.LevelDebug, AddSource: true}
+		logger = slog.New(tint.NewHandler(os.Stdout, logOptions))
+	} else {
+		logOptions := &slog.HandlerOptions{Level: slog.LevelWarn}
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, logOptions))
 	}
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, logOptions))
 
 	// Run service
 	if err := server.New(logger).Run(conf); err != nil {
