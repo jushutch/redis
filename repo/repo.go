@@ -1,11 +1,14 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"math"
 	"strconv"
 	"time"
+
+	"github.com/jushutch/redis/logging"
 )
 
 // Repo manages the storing and retreiving of data
@@ -25,16 +28,16 @@ func New(logger *slog.Logger) *Repo {
 }
 
 // Set writes a given value for a given key
-func (r *Repo) Set(key, value string, expiration int64) error {
-	r.logger.Info("set value", "key", key, "value", value, "expiration", expiration)
+func (r *Repo) Set(ctx context.Context, key, value string, expiration int64) error {
+	r.logger.With(logging.FieldsFromContext(ctx)...).Info("set value", "key", key, "value", value, "expiration", expiration)
 	r.data.Set(key, value)
 	r.expirations.Set(key, expiration)
 	return nil
 }
 
 // Get retrieves the value for a given key
-func (r *Repo) Get(key string) (string, error) {
-	r.logger.Info("get value", "key", key)
+func (r *Repo) Get(ctx context.Context, key string) (string, error) {
+	r.logger.With(logging.FieldsFromContext(ctx)...).Info("get value", "key", key)
 	if expirationUnix, err := r.expirations.Get(key); err != nil || isExpired(expirationUnix) {
 		return "", fmt.Errorf("the key %q expired", key)
 	}
@@ -49,8 +52,8 @@ func (r *Repo) Get(key string) (string, error) {
 }
 
 // Delete removes the given key
-func (r *Repo) Delete(key string) error {
-	r.logger.Info("delete key", "key", key)
+func (r *Repo) Delete(ctx context.Context, key string) error {
+	r.logger.With(logging.FieldsFromContext(ctx)...).Info("delete key", "key", key)
 	if _, err := r.data.Get(key); err != nil {
 		return fmt.Errorf("failed to get value for key: %w", err)
 	}
@@ -59,11 +62,11 @@ func (r *Repo) Delete(key string) error {
 }
 
 // Add attempts to perform addition on the stored value
-func (r *Repo) Add(key string, toAdd int64) (int64, error) {
-	r.logger.Info("add", "key", key, "to_add", toAdd)
-	valueStr, err := r.Get(key)
+func (r *Repo) Add(ctx context.Context, key string, toAdd int64) (int64, error) {
+	r.logger.With(logging.FieldsFromContext(ctx)...).Info("add", "key", key, "to_add", toAdd)
+	valueStr, err := r.Get(ctx, key)
 	if err != nil {
-		err = r.Set(key, strconv.FormatInt(toAdd, 10), 0)
+		err = r.Set(ctx, key, strconv.FormatInt(toAdd, 10), 0)
 		if err != nil {
 			return 0, fmt.Errorf("failed to set new value: %w", err)
 		}

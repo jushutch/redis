@@ -1,10 +1,13 @@
-package repo
+package repo_test
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"testing"
 	"time"
+
+	. "github.com/jushutch/redis/repo"
 )
 
 const (
@@ -20,11 +23,12 @@ func TestSet(t *testing.T) {
 		{
 			name: "set and get",
 			test: func(r *Repo) {
-				err := r.Set("key", mockValue, 0)
+				ctx := context.Background()
+				err := r.Set(ctx, "key", mockValue, 0)
 				if err != nil {
 					t.Fatalf("unexpected error setting value: %v", err)
 				}
-				value, err := r.Get("key")
+				value, err := r.Get(ctx, "key")
 				if err != nil {
 					t.Fatalf("unexpected error getting value: %v", err)
 				}
@@ -36,22 +40,23 @@ func TestSet(t *testing.T) {
 		{
 			name: "set and get one key twice",
 			test: func(r *Repo) {
-				err := r.Set("key", mockValue, 0)
+				ctx := context.Background()
+				err := r.Set(ctx, "key", mockValue, 0)
 				if err != nil {
 					t.Fatalf("unexpected error setting value: %v", err)
 				}
-				value, err := r.Get("key")
+				value, err := r.Get(ctx, "key")
 				if err != nil {
 					t.Fatalf("unexpected error getting value: %v", err)
 				}
 				if value != mockValue {
 					t.Fatalf("got %s, wanted %s", value, mockValue)
 				}
-				err = r.Set("key", "new value", 0)
+				err = r.Set(ctx, "key", "new value", 0)
 				if err != nil {
 					t.Fatalf("unexpected error setting value: %v", err)
 				}
-				value, err = r.Get("key")
+				value, err = r.Get(ctx, "key")
 				if err != nil {
 					t.Fatalf("unexpected error getting value: %v", err)
 				}
@@ -63,7 +68,8 @@ func TestSet(t *testing.T) {
 		{
 			name: "get unset key",
 			test: func(r *Repo) {
-				value, err := r.Get("key")
+				ctx := context.Background()
+				value, err := r.Get(ctx, "key")
 				if err == nil {
 					t.Fatalf("expected error getting value")
 				}
@@ -75,22 +81,23 @@ func TestSet(t *testing.T) {
 		{
 			name: "set and get two keys",
 			test: func(r *Repo) {
-				err := r.Set("key", mockValue, 0)
+				ctx := context.Background()
+				err := r.Set(ctx, "key", mockValue, 0)
 				if err != nil {
 					t.Fatalf("unexpected error setting value: %v", err)
 				}
-				value, err := r.Get("key")
+				value, err := r.Get(ctx, "key")
 				if err != nil {
 					t.Fatalf("unexpected error getting value: %v", err)
 				}
 				if value != mockValue {
 					t.Fatalf("got %s, wanted %s", value, mockValue)
 				}
-				err = r.Set("second key", "second value", 0)
+				err = r.Set(ctx, "second key", "second value", 0)
 				if err != nil {
 					t.Fatalf("unexpected error setting value: %v", err)
 				}
-				value, err = r.Get("second key")
+				value, err = r.Get(ctx, "second key")
 				if err != nil {
 					t.Fatalf("unexpected error getting value: %v", err)
 				}
@@ -118,7 +125,8 @@ func TestGet(t *testing.T) {
 		{
 			name: "get unset key",
 			test: func(r *Repo) {
-				value, err := r.Get("key")
+				ctx := context.Background()
+				value, err := r.Get(ctx, "key")
 				if err == nil {
 					t.Fatalf("expected error getting value")
 				}
@@ -146,11 +154,12 @@ func TestExpiration(t *testing.T) {
 		{
 			name: "unexpired",
 			test: func(r *Repo) {
-				err := r.Set("key", mockValue, time.Now().Add(10*time.Second).UnixMilli())
+				ctx := context.Background()
+				err := r.Set(ctx, "key", mockValue, time.Now().Add(10*time.Second).UnixMilli())
 				if err != nil {
 					t.Fatalf("unexpected error setting value: %v", err)
 				}
-				value, err := r.Get("key")
+				value, err := r.Get(ctx, "key")
 				if err != nil {
 					t.Fatalf("unexpected error getting value: %v", err)
 				}
@@ -162,12 +171,13 @@ func TestExpiration(t *testing.T) {
 		{
 			name: "expired",
 			test: func(r *Repo) {
-				err := r.Set("key", mockValue, time.Now().Add(time.Second).UnixMilli())
+				ctx := context.Background()
+				err := r.Set(ctx, "key", mockValue, time.Now().Add(time.Second).UnixMilli())
 				if err != nil {
 					t.Fatalf("unexpected error setting value: %v", err)
 				}
 				time.Sleep(time.Second)
-				value, err := r.Get("key")
+				value, err := r.Get(ctx, "key")
 				if err == nil {
 					t.Fatalf("expected error for expired key")
 				}
@@ -179,11 +189,12 @@ func TestExpiration(t *testing.T) {
 		{
 			name: "before and after expiration",
 			test: func(r *Repo) {
-				err := r.Set("key", mockValue, time.Now().Add(time.Second).UnixMilli())
+				ctx := context.Background()
+				err := r.Set(ctx, "key", mockValue, time.Now().Add(time.Second).UnixMilli())
 				if err != nil {
 					t.Fatalf("unexpected error setting value: %v", err)
 				}
-				value, err := r.Get("key")
+				value, err := r.Get(ctx, "key")
 				if err != nil {
 					t.Fatalf("unexpected error getting value: %v", err)
 				}
@@ -191,7 +202,7 @@ func TestExpiration(t *testing.T) {
 					t.Fatalf("got %s, wanted %s", value, mockValue)
 				}
 				time.Sleep(time.Second)
-				value, err = r.Get("key")
+				value, err = r.Get(ctx, "key")
 				if err == nil {
 					t.Fatalf("expected error for expired key")
 				}
@@ -203,11 +214,12 @@ func TestExpiration(t *testing.T) {
 		{
 			name: "set expiration on existing key",
 			test: func(r *Repo) {
-				err := r.Set("key", mockValue, time.Now().Add(time.Second).UnixMilli())
+				ctx := context.Background()
+				err := r.Set(ctx, "key", mockValue, time.Now().Add(time.Second).UnixMilli())
 				if err != nil {
 					t.Fatalf("unexpected error setting value: %v", err)
 				}
-				value, err := r.Get("key")
+				value, err := r.Get(ctx, "key")
 				if err != nil {
 					t.Fatalf("unexpected error getting value: %v", err)
 				}
@@ -215,18 +227,18 @@ func TestExpiration(t *testing.T) {
 					t.Fatalf("got %s, wanted %s", value, mockValue)
 				}
 				time.Sleep(time.Second)
-				value, err = r.Get("key")
+				value, err = r.Get(ctx, "key")
 				if err == nil {
 					t.Fatalf("expected error for expired key")
 				}
 				if value != "" {
 					t.Fatalf("expected empty value for expired key")
 				}
-				err = r.Set("key", mockValue, 0)
+				err = r.Set(ctx, "key", mockValue, 0)
 				if err != nil {
 					t.Fatalf("unexpected error setting value: %v", err)
 				}
-				value, err = r.Get("key")
+				value, err = r.Get(ctx, "key")
 				if err != nil {
 					t.Fatalf("unexpected error getting value: %v", err)
 				}

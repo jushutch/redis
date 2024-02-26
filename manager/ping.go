@@ -1,7 +1,11 @@
 package manager
 
-import "github.com/jushutch/redis/serializer"
+import (
+	"context"
 
-func (m *Manager) handlePing(_ serializer.Array) serializer.RESPType {
+	"github.com/jushutch/redis/serializer"
+)
+
+func (m *Manager) handlePing(ctx context.Context, _ serializer.Array) serializer.RESPType {
 	return serializer.SimpleString("PONG")
 }

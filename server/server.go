@@ -1,15 +1,19 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net"
 
+	"github.com/gofrs/uuid"
+	"github.com/jushutch/redis/logging"
 	"github.com/jushutch/redis/manager"
 	"github.com/jushutch/redis/repo"
 	"github.com/jushutch/redis/serializer"
+	"github.com/jushutch/redis/tracing"
 )
 
 // Config contains configuration parameters for the server
@@ -20,7 +24,7 @@ type Config struct {
 
 // Manager handles Redis commands
 type Manager interface {
-	HandleCommand(command serializer.Array) serializer.RESPType
+	HandleCommand(ctx context.Context, command serializer.Array) serializer.RESPType
 }
 
 // Server listens for RESP requests and sends RESP responses
@@ -52,51 +56,57 @@ func (s *Server) Run(conf Config) error {
 		if err != nil {
 			return fmt.Errorf("error accepting: %w", err)
 		}
-		go s.handleRequest(conn)
+		traceID := uuid.Must(uuid.NewV4()).String()
+		ctx := context.Background()
+		ctx = tracing.SetTraceID(ctx, traceID)
+		go s.handleRequest(ctx, conn)
 	}
 }
 
 // handleRequest serializes the request into commands and executes them
-func (s *Server) handleRequest(conn net.Conn) {
+func (s *Server) handleRequest(ctx context.Context, conn net.Conn) {
+	logger := s.logger.With(logging.FieldsFromContext(ctx)...)
 	defer conn.Close()
 	buffer := make([]byte, 1024)
 	bytesRead, err := conn.Read(buffer)
 	if err != nil {
 		if !errors.Is(err, io.EOF) {
-			s.logger.Error("failed to read from connection", "error", err)
+			logger.Error("failed to read from connection", "error", err)
 		}
 		return
 	}
 	request := string(buffer[:bytesRead])
-	s.logger.Info("received request", "request", request)
-
+	logger.Info("received request", "request", request)
 	// Execute all commands in request and send responses
 	for i := 0; i < bytesRead; {
 		commandType, bytes := serializer.Serialize(request[i:])
 		i += bytes
-		logger := s.logger.With(
+		cmdLogger := logger.With(
 			"bytes", bytes,
 			"request", request,
 			"command", request[i-bytes:i],
 		)
-		logger.Info("serialized command")
+		cmdLogger.Info("serialized command")
 		command, ok := commandType.(serializer.Array)
 		if !ok {
-			logger.Error("command was not an array")
+			cmdLogger.Error("command was not an array")
 			continue
 		}
-		response := s.manager.HandleCommand(command)
+		response := s.manager.HandleCommand(ctx, command)
 		if response == nil {
-			logger.Error("response was nil")
+			cmdLogger.Error("response was nil")
 			continue
 		}
-		logger = logger.With("response", response.Deserialize())
-		logger.Info("send response")
+		if val, ok := response.(serializer.SimpleError); ok {
+			cmdLogger.Error(string(val))
+		}
+		cmdLogger = cmdLogger.With("response", response.Deserialize())
+		cmdLogger.Info("send response")
 		bytesWritten, err := conn.Write([]byte(response.Deserialize()))
 		if err != nil {
-			s.logger.Error("failed to write response")
+			cmdLogger.Error("failed to write response")
 			continue
 		}
-		logger.Info("sent response", "bytes_written", bytesWritten)
+		cmdLogger.Info("sent response", "bytes_written", bytesWritten)
 	}
 }

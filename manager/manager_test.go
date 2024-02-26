@@ -1,10 +1,12 @@
-package manager
+package manager_test
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"testing"
 
+	. "github.com/jushutch/redis/manager"
 	"github.com/jushutch/redis/serializer"
 	"go.uber.org/mock/gomock"
 )
@@ -51,7 +53,7 @@ func TestManager(t *testing.T) {
 			},
 			expected: serializer.SimpleString("OK"),
 			expect: func(m *MockRepo) {
-				m.EXPECT().Set("key", "value", int64(0)).Return(nil).Times(1)
+				m.EXPECT().Set(gomock.Any(), "key", "value", int64(0)).Return(nil).Times(1)
 			},
 		},
 		{
@@ -65,7 +67,7 @@ func TestManager(t *testing.T) {
 			},
 			expected: serializer.BulkString{Length: 5, Value: "value"},
 			expect: func(m *MockRepo) {
-				m.EXPECT().Get("key").Return("value", nil).Times(1)
+				m.EXPECT().Get(gomock.Any(), "key").Return("value", nil).Times(1)
 			},
 		},
 	}
@@ -79,7 +81,7 @@ func TestManager(t *testing.T) {
 			mockRepo := NewMockRepo(ctrl)
 			manager := New(mockRepo, logger)
 			test.expect(mockRepo)
-			actual := manager.HandleCommand(test.input)
+			actual := manager.HandleCommand(context.Background(), test.input)
 			if actual != test.expected {
 				t.Fatalf("failed to handle command %q. got %v, wanted %v",
 					test.input.Deserialize(),

@@ -1,11 +1,13 @@
 package manager
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/jushutch/redis/logging"
 	"github.com/jushutch/redis/serializer"
 )
 
@@ -45,7 +47,7 @@ func (o ExpirationOpt) GetExpiration(raw string) (int64, error) {
 	}
 }
 
-func (m *Manager) handleSet(command serializer.Array) serializer.RESPType {
+func (m *Manager) handleSet(ctx context.Context, command serializer.Array) serializer.RESPType {
 	key, ok := command.Elements[1].(serializer.BulkString)
 	if !ok {
 		return nil
@@ -67,13 +69,13 @@ func (m *Manager) handleSet(command serializer.Array) serializer.RESPType {
 		}
 		expirationUnix, err = ExpirationOpt(strings.ToUpper(option.Value)).GetExpiration(expirationStr.Value)
 		if err != nil {
-			m.logger.Error("failed to parse expiration argument", "error", err)
+			m.logger.With(logging.FieldsFromContext(ctx)...).Error("failed to parse expiration argument", "error", err)
 			return nil
 		}
 	}
-	err = m.repo.Set(key.Value, value.Value, expirationUnix)
+	err = m.repo.Set(ctx, key.Value, value.Value, expirationUnix)
 	if err != nil {
-		return serializer.SimpleError(err.Error())
+		return serializer.SimpleError(fmt.Sprintf("ERR %s", err.Error()))
 	}
 	return serializer.SimpleString("OK")
 }
