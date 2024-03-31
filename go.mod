@@ -8,3 +8,5 @@ require (
 )
 
 require github.com/lmittmann/tint v1.0.4
+
+require github.com/gofrs/uuid v4.4.0+incompatible
