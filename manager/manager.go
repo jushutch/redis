@@ -1,10 +1,12 @@
 package manager
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strings"
 
+	"github.com/jushutch/redis/logging"
 	"github.com/jushutch/redis/serializer"
 )
 
@@ -24,10 +26,10 @@ const (
 
 // Repo manages the storing and retreiving of data
 type Repo interface {
-	Set(key string, value string, expiration int64) error
-	Get(key string) (string, error)
-	Delete(key string) error
-	Add(key string, toAdd int64) (int64, error)
+	Set(ctx context.Context, key string, value string, expiration int64) error
+	Get(ctx context.Context, key string) (string, error)
+	Add(ctx context.Context, key string, toAdd int64) (int64, error)
+	Delete(ctx context.Context, key string) error
 }
 
 // Manager handles Redis commands
@@ -45,7 +47,7 @@ func New(repo Repo, logger *slog.Logger) *Manager {
 }
 
 // HandleCommand executes the given command and returns a RESP response
-func (m *Manager) HandleCommand(command serializer.Array) serializer.RESPType {
+func (m *Manager) HandleCommand(ctx context.Context, command serializer.Array) serializer.RESPType {
 	if command.Length <= 0 {
 		return nil
 	}
@@ -55,24 +57,24 @@ func (m *Manager) HandleCommand(command serializer.Array) serializer.RESPType {
 		return nil
 	}
 	commandName := Command(strings.ToUpper(name.Value))
-	m.logger.Info("handle command", "command", commandName)
+	m.logger.With(logging.FieldsFromContext(ctx)...).Info("handle command", "command", commandName)
 	switch commandName {
 	case PING:
-		return m.handlePing(command)
+		return m.handlePing(ctx, command)
 	case ECHO:
-		return m.handleEcho(command)
+		return m.handleEcho(ctx, command)
 	case SET:
-		return m.handleSet(command)
+		return m.handleSet(ctx, command)
 	case GET:
-		return m.handleGet(command)
+		return m.handleGet(ctx, command)
 	case EXISTS:
-		return m.handleExists(command)
+		return m.handleExists(ctx, command)
 	case DELETE:
-		return m.handleDelete(command)
+		return m.handleDelete(ctx, command)
 	case INCREMENT:
-		return m.handleIncrement(command)
+		return m.handleIncrement(ctx, command)
 	case DECREMENT:
-		return m.handleDecrement(command)
+		return m.handleDecrement(ctx, command)
 	default:
 		return serializer.SimpleError(fmt.Sprintf("ERR unknown command '%s'", name.Value))
 	}

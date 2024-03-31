@@ -18,8 +18,8 @@ func NewThreadSafeMap[T any]() *ThreadSafeMap[T] {
 
 func (m *ThreadSafeMap[T]) Set(key string, value T) {
 	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.data[key] = value
-	m.mu.Unlock()
 }
 
 func (m *ThreadSafeMap[T]) Get(key string) (T, error) {
