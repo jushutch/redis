@@ -94,7 +94,7 @@ func (s *Server) handleRequest(conn net.Conn) {
 		logger.Info("send response")
 		bytesWritten, err := conn.Write([]byte(response.Deserialize()))
 		if err != nil {
-			s.logger.Error("failed to write response")
+			logger.Error("failed to write response")
 			continue
 		}
 		logger.Info("sent response", "bytes_written", bytesWritten)
