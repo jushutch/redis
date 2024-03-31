@@ -9,11 +9,11 @@ import (
 	"net"
 
 	"github.com/gofrs/uuid"
-	"github.com/jushutch/redis/logging"
-	"github.com/jushutch/redis/manager"
-	"github.com/jushutch/redis/repo"
-	"github.com/jushutch/redis/serializer"
-	"github.com/jushutch/redis/tracing"
+	"github.com/jushutch/redis/internal/logging"
+	"github.com/jushutch/redis/internal/manager"
+	"github.com/jushutch/redis/internal/repo"
+	"github.com/jushutch/redis/internal/serializer"
+	"github.com/jushutch/redis/internal/tracing"
 )
 
 // Config contains configuration parameters for the server

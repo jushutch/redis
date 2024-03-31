@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jushutch/redis/logging"
+	"github.com/jushutch/redis/internal/logging"
 )
 
 // Repo manages the storing and retreiving of data

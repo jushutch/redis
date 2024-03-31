@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/jushutch/redis/server"
+	"github.com/jushutch/redis/internal/server"
 	"github.com/lmittmann/tint"
 	"github.com/namsral/flag"
 )

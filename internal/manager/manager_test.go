@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	. "github.com/jushutch/redis/manager"
-	"github.com/jushutch/redis/serializer"
+	. "github.com/jushutch/redis/internal/manager"
+	"github.com/jushutch/redis/internal/serializer"
 	"go.uber.org/mock/gomock"
 )
 

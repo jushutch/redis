@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/jushutch/redis/repo"
+	. "github.com/jushutch/redis/internal/repo"
 )
 
 const (

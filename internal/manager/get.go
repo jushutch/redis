@@ -3,8 +3,8 @@ package manager
 import (
 	"context"
 
-	"github.com/jushutch/redis/logging"
-	"github.com/jushutch/redis/serializer"
+	"github.com/jushutch/redis/internal/logging"
+	"github.com/jushutch/redis/internal/serializer"
 )
 
 func (m *Manager) handleGet(ctx context.Context, command serializer.Array) serializer.RESPType {
@@ -14,7 +14,7 @@ func (m *Manager) handleGet(ctx context.Context, command serializer.Array) seria
 	}
 	value, err := m.repo.Get(ctx, key.Value)
 	if err != nil {
-		m.logger.With(logging.FieldsFromContext(ctx)...).Warn("failed to get value from repo", "key", key.Value, "reason", err)
+		m.logger.With(logging.FieldsFromContext(ctx)...).Warn("failed to get value from repo", "key", key.Value, "error", err)
 		return serializer.BulkString{Length: -1, Value: ""}
 	}
 	return serializer.BulkString{Length: int64(len(value)), Value: value}

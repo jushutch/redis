@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/jushutch/redis/logging"
-	"github.com/jushutch/redis/serializer"
+	"github.com/jushutch/redis/internal/logging"
+	"github.com/jushutch/redis/internal/serializer"
 )
 
 type Command string

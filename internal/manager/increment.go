@@ -3,8 +3,8 @@ package manager
 import (
 	"context"
 
-	"github.com/jushutch/redis/logging"
-	"github.com/jushutch/redis/serializer"
+	"github.com/jushutch/redis/internal/logging"
+	"github.com/jushutch/redis/internal/serializer"
 )
 
 func (m *Manager) handleIncrement(ctx context.Context, command serializer.Array) serializer.RESPType {
